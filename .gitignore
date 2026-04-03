@@ -6,3 +6,5 @@ dist/
 .env
 __pycache__/
 *.pyc
+ImageAuthentication/image-auth-env/
+ImageAuthentication/ImageTamperingModule/dataset/
