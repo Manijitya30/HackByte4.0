@@ -1,5 +1,7 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
+
 from PIL import Image
 import io
 import os
@@ -7,6 +9,8 @@ import subprocess
 import json
 import tempfile
 
+# ===== ROUTERS =====
+from routers import video_check
 from report_router import router as report_router
 
 # ===== MODELS =====
@@ -19,11 +23,26 @@ from metadata import analyze_metadata, score_flags
 # =====================================================
 # ===== APP INIT ======================================
 # =====================================================
-app = FastAPI()
+app = FastAPI(
+    title="Court Evidence Engine",
+    description="Forensic video & image authentication API",
+    version="1.0.0"
+)
+
+# =====================================================
+# ===== CORS CONFIG ===================================
+# =====================================================
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # =====================================================
 # ===== INCLUDE ROUTERS ===============================
 # =====================================================
+app.include_router(video_check.router, prefix="/video", tags=["Video Analysis"])
 app.include_router(report_router)
 
 # =====================================================
@@ -39,8 +58,8 @@ os.makedirs("temp", exist_ok=True)
 # ===== ROOT ==========================================
 # =====================================================
 @app.get("/")
-def read_root():
-    return {"message": "Hello from FastAPI 🚀"}
+def root():
+    return {"status": "Court Evidence Engine running 🚀"}
 
 # =====================================================
 # ===== MAIN ANALYSIS ENDPOINT ========================
