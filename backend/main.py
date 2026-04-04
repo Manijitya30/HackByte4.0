@@ -1,6 +1,9 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
+
 
 from PIL import Image
 import io
@@ -42,8 +45,9 @@ app.add_middleware(
 # =====================================================
 # ===== INCLUDE ROUTERS ===============================
 # =====================================================
-app.include_router(video_check.router, prefix="/video", tags=["Video Analysis"])
+app.include_router(video_check.router, prefix="", tags=["Video Analysis"])
 app.include_router(report_router)
+app.mount("/temp", StaticFiles(directory="temp"), name="temp")
 
 # =====================================================
 # ===== LOAD MODELS (ONLY ONCE) =======================
@@ -151,8 +155,32 @@ async def analyze(file: UploadFile = File(...)):
         tamper_conf
     )
 
+    return {
+    "metadata": {
+        "status": metadata_status,
+        "score": metadata_score,
+        "flags": metadata_flags
+    },
+    "ai_detection": {
+        "result": ai_result,
+        "confidence": ai_conf
+    },
+    "deepfake": deepfake_result,
+    "tampering": {
+        "tampered": tampered,
+        "confidence": tamper_conf
+    },
+    "images": {
+        "original": "http://127.0.0.1:8000/temp/input.jpg",
+        "heatmap": "http://127.0.0.1:8000/temp/overlay.jpg"
+    },
+    "report_url": "http://127.0.0.1:8000/download-report"
+    }
+
+@app.get("/download-report")
+def download_report():
     return FileResponse(
-        report_path,
+        "temp/report.pdf",
         media_type="application/pdf",
         filename="report.pdf"
     )

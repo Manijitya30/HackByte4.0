@@ -24,7 +24,7 @@ def load_ai_model():
     return model, device
 
 def predict_ai(model, device, image):
-    from utils import preprocess_ai
+    from util import preprocess_ai
     import torch
 
     x = preprocess_ai(image).to(device)

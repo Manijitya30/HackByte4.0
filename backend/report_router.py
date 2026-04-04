@@ -93,14 +93,18 @@ async def full_analysis(
             final_report["final"]
         )
 
-        # ============================
-        # RETURN PDF
-        # ============================
-        return FileResponse(
-            report_path,
-            media_type="application/pdf",
-            filename="audio_report.pdf"
-        )
+        return {
+    "metadata": {
+        "main": metadata,
+        "extra": metadata_extra
+    },
+    "ai_detection": ai_result,
+    "tampering": tamper_result,
+    "speaker": speaker_result,
+    "final": final_report,
+
+    "report_url": f"http://127.0.0.1:8000/audio/download/{os.path.basename(report_path)}"
+    }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -114,3 +118,8 @@ async def full_analysis(
                 os.remove(ref_path)
         except:
             pass
+
+@router.get("/download/{filename}")
+def download_audio_report(filename: str):
+    path = os.path.join(UPLOAD_FOLDER, filename)
+    return FileResponse(path, media_type="application/pdf")

@@ -4,7 +4,10 @@ import { Link } from "react-router-dom";
 
 const Navbar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   return (
-    <nav className="glass-nav fixed top-0 left-0 right-0 z-50 bg-white/80 border-b border-gray-200/50 backdrop-blur-md">
+    <nav className="fixed top-0 left-0 right-0 z-50 
+bg-white/80 backdrop-blur-md 
+border-b border-gray-200/50
+shadow-sm">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
         <div className="flex items-center justify-between h-20">
 

@@ -67,12 +67,8 @@ def analyze_metadata(metadata):
     if any("history" in str(k).lower() for k in metadata.keys()):
         flags.append("XMP history detected (file edited and resaved)")
     
-    # Rule 10: No camera + no EXIF timestamps
-    if not metadata.get("Make") and not metadata.get("Model"):
-        if not metadata.get("DateTimeOriginal"):
-            flags.append("Likely AI-generated (no camera + no capture timestamp)")
 
-    # Rule 11: No EXIF at all
+    # Rule 10: No EXIF at all
     if not metadata.get("DateTimeOriginal") and not metadata.get("ModifyDate"):
         flags.append("No EXIF timestamps present (possible AI or stripped image)")
 
@@ -116,7 +112,7 @@ async def analyze_image(file: UploadFile = File(...)):
 
         #  Run ExifTool
         result = subprocess.run(
-            ["C:\\Windows\\exiftool.exe", "-json", file_path],
+            ["exiftool", "-json", file_path],
             capture_output=True,
             text=True
         )
@@ -151,10 +147,10 @@ async def analyze_image(file: UploadFile = File(...)):
         max_possible_score = 12 
 
         # 🎯 Status
-        if score >= 5:
+        if score >= 7:
             status = "HIGHLY_SUSPICIOUS"
             risk = "HIGH"
-        elif score >= 3:
+        elif score >= 4:
             status = "SUSPICIOUS"
             risk = "MEDIUM"
         else:

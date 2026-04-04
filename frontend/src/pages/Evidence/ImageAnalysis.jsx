@@ -3,10 +3,8 @@ import React, { useState, useRef, useEffect } from "react";
 const ImageAnalysis = ({ file }) => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-
   const resultRef = useRef(null);
 
-  // ✅ scroll fix
   useEffect(() => {
     if (result && resultRef.current) {
       const yOffset = -80;
@@ -15,10 +13,7 @@ const ImageAnalysis = ({ file }) => {
         window.pageYOffset +
         yOffset;
 
-      window.scrollTo({
-        top: y,
-        behavior: "smooth",
-      });
+      window.scrollTo({ top: y, behavior: "smooth" });
     }
   }, [result]);
 
@@ -32,7 +27,7 @@ const ImageAnalysis = ({ file }) => {
       setLoading(true);
       setResult(null);
 
-      const res = await fetch("http://127.0.0.1:8000/analyze-image/", {
+      const res = await fetch("http://127.0.0.1:8000/analyze/", {
         method: "POST",
         body: formData,
       });
@@ -42,110 +37,132 @@ const ImageAnalysis = ({ file }) => {
     } catch (err) {
       console.error(err);
       alert("Error analyzing image");
+      setResult(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusColor = (status) => {
-    if (status === "HIGHLY_SUSPICIOUS") return "text-red-600";
-    if (status === "SUSPICIOUS") return "text-yellow-600";
-    return "text-green-600";
-  };
-
-  // 🔥 REAL NORMALIZATION (CORRECT WAY)
-  const normalizedScore = result
-    ? Math.round(
-        (result.confidence_score / result.max_possible_score) * 10
-      )
-    : 0;
-
   return (
-    <div className="mt-10">
+    <div className="min-h-screen bg-[#F9F7F4] pt-12 pb-20">
+
+      {/* HEADER */}
+     
 
       {/* BUTTON */}
-      <div className="text-center">
+      <div className="text-center mb-8">
         <button
           onClick={analyzeImage}
-          className="bg-[#0B132B] text-white px-8 py-3 hover:scale-105 transition-all"
+          className="bg-[#C5A880] text-white px-10 py-3 hover:scale-105 transition-all shadow-md"
         >
-          {loading ? "Analyzing..." : "Analyze Image"}
+          {loading ? "Analyzing..." : "Analyze Evidence"}
         </button>
       </div>
 
       {/* LOADING */}
       {loading && (
-        <div className="text-center mt-6 text-gray-500">
-          Processing metadata and applying forensic rules...
-        </div>
+        <p className="text-center text-gray-500">
+          Running forensic models...
+        </p>
       )}
 
       {/* RESULT */}
       {result && (
         <div
           ref={resultRef}
-          className="mt-16 p-6 border bg-white shadow-md space-y-6"
+          className="max-w-5xl mx-auto px-4 space-y-8"
         >
 
-          {/* STATUS */}
-          <div className="text-center">
-            <h2 className="text-xl font-semibold mb-2">
-              Analysis Result
+          {/* 🖼 VISUAL */}
+          {result.images && (
+            <div className="bg-white shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4 text-[#0B132B]">
+                Visual Analysis
+              </h2>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <img
+                  src={result.images.original}
+                  className="w-full border"
+                />
+                <img
+                  src={result.images.heatmap}
+                  className="w-full border"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 🔍 METADATA */}
+          <div className="bg-white shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4 text-[#0B132B]">
+              Metadata Analysis
             </h2>
 
-            <p className={`text-lg font-bold ${getStatusColor(result.status)}`}>
-              {result.status}
+            <p>Status: {result.metadata.status}</p>
+            <p>Score: {result.metadata.score}</p>
+
+            <div className="mt-4 space-y-2">
+              {result.metadata.flags.map((flag, i) => (
+                <div key={i} className="text-sm text-gray-700">
+                  ⚠ {flag}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 🤖 AI */}
+          <div className="bg-white shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4 text-[#0B132B]">
+              AI Detection
+            </h2>
+
+            <p>{result.ai_detection.result}</p>
+            <p className="text-sm text-gray-500">
+              Confidence: {result.ai_detection.confidence}
+            </p>
+          </div>
+
+          {/* 🎭 DEEPFAKE */}
+          <div className="bg-white shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4 text-[#0B132B]">
+              Deepfake Detection
+            </h2>
+
+            <p>{result.deepfake.verdict}</p>
+            <p>Probability: {result.deepfake.deepfake_probability}</p>
+            <p>
+              Flagged: {result.deepfake.flagged ? "Yes" : "No"}
+            </p>
+          </div>
+
+          {/* 🧩 TAMPERING */}
+          <div className="bg-white shadow-md p-6">
+            <h2 className="text-xl font-semibold mb-4 text-[#0B132B]">
+              Tampering Detection
+            </h2>
+
+            <p>
+              {result.tampering.tampered
+                ? "⚠ Tampered"
+                : "✅ Clean"}
             </p>
 
             <p className="text-sm text-gray-500">
-              {result.summary}
+              Confidence: {result.tampering.confidence}
             </p>
           </div>
 
-          {/* SCORE */}
-          <div>
-            <p className="font-medium mb-2">Risk Score</p>
-
-            <div className="w-full bg-gray-200 h-3">
-              <div
-                className={`h-3 ${
-                  result.status === "HIGHLY_SUSPICIOUS"
-                    ? "bg-red-500"
-                    : result.status === "SUSPICIOUS"
-                    ? "bg-yellow-500"
-                    : "bg-green-500"
-                }`}
-                style={{
-                  width: `${normalizedScore * 10}%`,
-                }}
-              ></div>
-            </div>
-
-            <p className="text-sm mt-1">
-              {normalizedScore} / 10
-            </p>
-          </div>
-
-          {/* FLAGS */}
-          <div>
-            <p className="font-medium mb-3">Detected Issues</p>
-
-            {result.tampering_flags.length === 0 ? (
-              <p className="text-green-600 text-sm">
-                No suspicious metadata detected
-              </p>
-            ) : (
-              <div className="grid gap-3">
-                {result.tampering_flags.map((flag, i) => (
-                  <div
-                    key={i}
-                    className="p-3 border bg-gray-50 text-sm"
-                  >
-                    ⚠ {flag}
-                  </div>
-                ))}
-              </div>
-            )}
+          {/* DOWNLOAD */}
+          <div className="text-center">
+            <a
+              href={result.report_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-[#0B132B] text-white px-8 py-3 hover:scale-105 transition"
+            >
+              Download Report
+            </a>
           </div>
 
         </div>

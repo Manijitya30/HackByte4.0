@@ -4,16 +4,20 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import Evidence from "./pages/Evidence";
 import Chatbot from "./pages/Chatbot";
+import Auth from "./pages/Auth";
+import ScrollToTop from "./ScrollToTop";
 
 function App() {
   return (
     <div className="App">
       <BrowserRouter>
+       <ScrollToTop />
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<HomePage />} />
           <Route path="/evidence" element={<Evidence />} />
           <Route path="/chatbot" element={<Chatbot />} />
+          
         </Routes>
       </BrowserRouter>
     </div>

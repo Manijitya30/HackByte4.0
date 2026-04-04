@@ -84,12 +84,24 @@ async def analyze_video(file: UploadFile = File(...)):
             splice,
             sync
         )
+        return {
+    "verdict": verdict,
+    "risk_score": risk_score,
 
-        return FileResponse(
-            report_path,
-            media_type="application/pdf",
-            filename="video_report.pdf"
-        )
+    "metadata": {
+        "main": metadata,
+        "extra": metadata_extra,
+    },
+
+    "deepfake": deepfake,
+    "compression": compression,
+    "splice": splice,
+    "sync": sync,
+
+    "report_url": f"http://127.0.0.1:8000/video/download/{os.path.basename(report_path)}"
+    }
+
+        
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -97,3 +109,8 @@ async def analyze_video(file: UploadFile = File(...)):
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
+
+@router.get("/download/{filename}")
+def download_report(filename: str):
+    path = f"/tmp/{filename}"
+    return FileResponse(path, media_type="application/pdf")

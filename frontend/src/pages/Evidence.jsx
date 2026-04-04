@@ -2,12 +2,13 @@ import React, { useState } from "react";
 import { Upload, Image, Video, Mic, FileText } from "lucide-react";
 import Navbar from "../components/Navbar";
 import ImageAnalysis from "./Evidence/ImageAnalysis";
+import VideoAnalysis from "./Evidence/VideoAnalysis";
+import AudioAnalysis from "./Evidence/AudioAnalysis";
 
 const fileTypes = [
   { id: "image", label: "Images", icon: Image },
   { id: "video", label: "Videos", icon: Video },
   { id: "audio", label: "Audio", icon: Mic },
-  { id: "doc", label: "Certificates", icon: FileText },
 ];
 
 const Evidence = () => {
@@ -50,7 +51,7 @@ const Evidence = () => {
       <section className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
 
         {/* FILE TYPE SELECTOR */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-8 sm:mb-10">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8 sm:mb-10">
           {fileTypes.map((type) => {
             const Icon = type.icon;
             return (
@@ -108,17 +109,13 @@ const Evidence = () => {
 
         {selectedType === "image" && <ImageAnalysis file={file} />}
 
-        {selectedType === "video" && (
-          <div className="mt-10 text-center text-gray-500">
-            Video analysis coming soon...
-          </div>
-        )}
+        {selectedType === "video" && file && (
+  <VideoAnalysis file={file} />
+)}
 
-        {selectedType === "audio" && (
-          <div className="mt-10 text-center text-gray-500">
-            Audio analysis coming soon...
-          </div>
-        )}
+        {selectedType === "audio" && file && (
+  <AudioAnalysis file={file} />
+)}
 
         {selectedType === "doc" && (
           <div className="mt-10 text-center text-gray-500">

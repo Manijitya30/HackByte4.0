@@ -1,11 +1,13 @@
-import React from "react";
+import React, { use } from "react";
 import { motion } from "framer-motion";
 import { Scale, Shield, Mic, MessageSquare, Users, ChevronRight, Menu } from "lucide-react";
 import Navbar from "../components/Navbar";
+import { useNavigate } from "react-router-dom";
 
 const HomePage = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-
+  const navigate = useNavigate();
+  
   const features = [
   {
     id: "evidence-tamper",
@@ -64,6 +66,11 @@ const HomePage = () => {
       },
     },
   };
+
+  const handleNavigate = () => {
+ navigate("/evidence");
+  
+};
 
   return (
     <div className="min-h-screen bg-white">
@@ -183,6 +190,13 @@ hover:scale-105 hover:shadow-lg"
                         <p className="text-base leading-relaxed text-gray-200">
                           {feature.description}
                         </p>
+                        <button
+  onClick={() => handleNavigate(feature.id)}
+  className="mt-6 w-fit px-5 py-2 bg-[#C5A880] text-white text-sm 
+  hover:scale-105 transition-all duration-300"
+>
+  Explore →
+</button>
                       </div>
                     </div>
                   ) : (
