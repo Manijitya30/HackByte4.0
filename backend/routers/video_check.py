@@ -1,140 +1,99 @@
-from services.deepfake_service import analyze_deepfake
+from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse
 import os
 import uuid
 import aiofiles
-from fastapi import APIRouter, UploadFile, File, HTTPException
+
 from services.deepfake_service import analyze_deepfake
 from services.compression_service import analyze_video_compression
 from services.splice_detection import analyze_video_splice
 from services.ffprobe_service import analyze_metadata
 from services.sync_simple import check_sync
+from services.video_report_service import generate_video_report
 
-#Setup
-router = APIRouter()
+router = APIRouter(prefix="/video", tags=["Video Analysis"])
+
 UPLOAD_DIR = "/tmp/evidence_uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+
 ALLOWED_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv"}
 
-#Route for deepfake anaylsis
-@router.post("/analyze/deepfake")
-async def analyze_video_deepfake(file: UploadFile = File(...)):
+
+@router.post("/analyze")
+async def analyze_video(file: UploadFile = File(...)):
     ext = os.path.splitext(file.filename)[-1].lower()
+
     if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
+        raise HTTPException(status_code=400, detail="Unsupported file type")
 
     temp_filename = f"{uuid.uuid4()}{ext}"
     temp_path = os.path.join(UPLOAD_DIR, temp_filename)
 
+    async with aiofiles.open(temp_path, "wb") as f:
+        await f.write(await file.read())
+
     try:
-        #Save video to temporary location rather than overloading the RAM
-        async with aiofiles.open(temp_path, "wb") as f:
-            content = await file.read()
-            await f.write(content)
+        # ==============================
+        # RUN ALL ANALYSIS
+        # ==============================
+        metadata, metadata_extra = analyze_metadata(temp_path, file.filename)
+        deepfake = analyze_deepfake(temp_path)
+        compression = analyze_video_compression(temp_path)
+        splice = analyze_video_splice(temp_path)
+        sync = check_sync(temp_path)
 
-        report = analyze_deepfake(temp_path)
-        return report
+        # ==============================
+        # FINAL VERDICT LOGIC
+        # ==============================
+        risk_score = 0
 
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        if deepfake["average_deepfake_score"] > 0.7:
+            risk_score += 40
 
-    finally:
-        #Cleaning up the temporary file
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
+        if compression["overall_suspicious"]:
+            risk_score += 20
 
-#Route for Compression Artifact Detection
-@router.post("/analyze/compression")
-async def analyze_video_compression_artifacts(file: UploadFile = File(...)):
-    ext = os.path.splitext(file.filename)[-1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unsupported file type: {ext}"
+        if splice["overall_suspicious"]:
+            risk_score += 30
+
+        if sync["status"] == "Out of Sync":
+            risk_score += 20
+
+        if metadata.risk_signals:
+            risk_score += 10
+
+        if risk_score >= 70:
+            verdict = "❌ FAKE / TAMPERED VIDEO"
+        elif risk_score >= 40:
+            verdict = "⚠️ SUSPICIOUS VIDEO"
+        else:
+            verdict = "✅ LIKELY AUTHENTIC"
+
+        # ==============================
+        # GENERATE PDF REPORT
+        # ==============================
+        report_path = f"/tmp/report_{uuid.uuid4()}.pdf"
+
+        generate_video_report(
+            report_path,
+            temp_path,
+            metadata,
+            metadata_extra,
+            deepfake,
+            compression,
+            splice,
+            sync
         )
 
-    temp_filename = f"{uuid.uuid4()}{ext}"
-    temp_path = os.path.join(UPLOAD_DIR, temp_filename)
+        return FileResponse(
+            report_path,
+            media_type="application/pdf",
+            filename="video_report.pdf"
+        )
 
-    try:
-        async with aiofiles.open(temp_path, "wb") as f:
-            content = await file.read()
-            await f.write(content)
-
-        result = analyze_video_compression(temp_path)
-        return result
-
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     finally:
         if os.path.exists(temp_path):
             os.remove(temp_path)
-
-#Route for Splice Detection
-@router.post("/analyze/splice")
-async def analyze_video_splice_tampering(file: UploadFile = File(...)):
-    ext = os.path.splitext(file.filename)[-1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
-
-    temp_filename = f"{uuid.uuid4()}{ext}"
-    temp_path = os.path.join(UPLOAD_DIR, temp_filename)
-
-    try:
-        async with aiofiles.open(temp_path, "wb") as f:
-            content = await file.read()
-            await f.write(content)
-
-        result = analyze_video_splice(temp_path)
-        return result
-
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
-
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-
-@router.post("/analyze/metadata")
-async def analyze_video_metadata(file: UploadFile = File(...)):
-    ext = os.path.splitext(file.filename)[-1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
-
-    temp_filename = f"{uuid.uuid4()}{ext}"
-    temp_path = os.path.join(UPLOAD_DIR, temp_filename)
-
-    try:
-        async with aiofiles.open(temp_path, "wb") as f:
-            content = await file.read()
-            await f.write(content)
-
-        report = analyze_metadata(temp_path, file.filename)
-        return report
-
-    except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
-
-    finally:
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-
-@router.post("/analyze/syncnet")
-async def syncnet_check(file: UploadFile = File(...)):
-    temp_path = f"temp_data/{uuid.uuid4()}.mp4"
-
-    # save uploaded file
-    async with aiofiles.open(temp_path, "wb") as f:
-        content = await file.read()
-        await f.write(content)
-
-    try:
-        result = check_sync(temp_path)
-        return result
-
-    finally:
-        try:
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
-        except:
-            pass

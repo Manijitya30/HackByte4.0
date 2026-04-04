@@ -143,17 +143,32 @@ def analyze_video_splice(
 
     ssim_vals = [t["ssim_score"]      for t in transitions]
     hist_vals = [t["hist_correlation"] for t in transitions]
+    
+    for s in hard_splices:
+        s["severity"] = "HIGH"
+
+    for a in anomalies:
+        a["severity"] = "MEDIUM"
 
     return {
-        "transitions_analyzed":   int(len(transitions)),
-        "splice_points_detected": int(len(hard_splices)),
-        "statistical_anomalies":  int(len(anomalies)),
-        "overall_suspicious":     overall_suspicious,
-        "video_fps":              round(float(fps), 2),
-        "avg_ssim":               round(float(np.mean(ssim_vals)), 6),
-        "avg_hist_correlation":   round(float(np.mean(hist_vals)), 6),
-        "risk_signals":           risk_signals,
-        "splice_points":          hard_splices,
-        "anomalous_transitions":  anomalies,
-        "all_transitions":        transitions,
+        "transitions_analyzed": len(transitions),
+        "splice_points_detected": len(hard_splices),
+        "statistical_anomalies": len(anomalies),
+
+        "overall_suspicious": overall_suspicious,
+
+        "confidence": round(
+            (len(hard_splices) * 0.7 + len(anomalies) * 0.3) / max(len(transitions), 1), 3
+        ),
+
+        "explanation": (
+            "Multiple abrupt transitions detected inconsistent with natural video flow"
+            if overall_suspicious else
+            "No strong splice indicators found"
+        ),
+
+        "risk_signals": risk_signals,
+
+        "splice_points": hard_splices,
+        "anomalous_transitions": anomalies,
     }

@@ -1,53 +1,116 @@
-from fastapi import APIRouter, UploadFile, File
+from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.responses import FileResponse
 import os
+import uuid
+import aiofiles
 
+# ✅ FIXED IMPORTS
 from ffprobe_service import analyze_metadata
 from ai_detection_service import detect_ai_voice
 from tamper_service import detect_tampering
 from speaker_service import verify_speaker
 from report_service import generate_final_report
+from audio_report_service import generate_audio_report
 
-router = APIRouter(prefix="/audio", tags=["Final Report"])
+router = APIRouter(prefix="/audio", tags=["Audio Analysis"])
 
 UPLOAD_FOLDER = "uploads"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
-@router.post("/full-analysis")
+@router.post("/analyze")
 async def full_analysis(
     file: UploadFile = File(...),
     reference: UploadFile = File(None)
 ):
-    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+    file_ext = os.path.splitext(file.filename)[-1].lower()
 
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
+    temp_filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = os.path.join(UPLOAD_FOLDER, temp_filename)
 
-    # Metadata
-    metadata = analyze_metadata(file_path, file.filename)
+    # Save uploaded file
+    async with aiofiles.open(file_path, "wb") as f:
+        await f.write(await file.read())
 
-    # AI Detection
-    ai_result = detect_ai_voice(file_path)
+    ref_path = None
 
-    # Tampering
-    tamper_result = detect_tampering(file_path)
+    try:
+        # ============================
+        # METADATA
+        # ============================
+        metadata, metadata_extra = analyze_metadata(file_path, file.filename)
 
-    # Speaker Verification
-    speaker_result = {"verdict": "Not Provided", "similarity": 0}
+        # ============================
+        # AI DETECTION
+        # ============================
+        ai_result = detect_ai_voice(file_path)
 
-    if reference:
-        ref_path = os.path.join(UPLOAD_FOLDER, reference.filename)
-        with open(ref_path, "wb") as f:
-            f.write(await reference.read())
+        # ============================
+        # TAMPERING
+        # ============================
+        tamper_result = detect_tampering(file_path)
 
-        speaker_result = verify_speaker(file_path, ref_path)
+        # ============================
+        # SPEAKER VERIFICATION
+        # ============================
+        speaker_result = {"verdict": "Not Provided", "similarity": 0}
 
-    # Final Report
-    final_report = generate_final_report(
-        metadata,
-        ai_result,
-        speaker_result,
-        tamper_result
-    )
+        if reference:
+            ref_filename = f"{uuid.uuid4()}.wav"
+            ref_path = os.path.join(UPLOAD_FOLDER, ref_filename)
 
-    return final_report
+            async with aiofiles.open(ref_path, "wb") as f:
+                await f.write(await reference.read())
+
+            speaker_result = verify_speaker(file_path, ref_path)
+
+        # ============================
+        # FINAL SCORING
+        # ============================
+        final_report = generate_final_report(
+            metadata,
+            ai_result,
+            speaker_result,
+            tamper_result
+        )
+
+        # ============================
+        # GENERATE PDF REPORT
+        # ============================
+        report_path = os.path.join(
+            UPLOAD_FOLDER,
+            f"audio_report_{uuid.uuid4()}.pdf"
+        )
+
+        generate_audio_report(
+            report_path,
+            file.filename,
+            metadata,
+            metadata_extra,
+            ai_result,
+            speaker_result,
+            tamper_result,
+            final_report["final"]
+        )
+
+        # ============================
+        # RETURN PDF
+        # ============================
+        return FileResponse(
+            report_path,
+            media_type="application/pdf",
+            filename="audio_report.pdf"
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        # Cleanup files
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+            if ref_path and os.path.exists(ref_path):
+                os.remove(ref_path)
+        except:
+            pass

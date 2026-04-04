@@ -106,15 +106,23 @@ def analyze_deepfake(
     average_score = round(float(np.mean(all_scores)), 4)
     max_score = round(float(np.max(all_scores)), 4)
 
-    # Verdict logic
+    # =============================
+    # FINAL INTERPRETATION
+    # =============================
     if average_score >= 0.75:
         verdict = "HIGH_RISK"
+        conclusion = "Strong evidence of deepfake manipulation detected"
     elif average_score >= 0.50:
         verdict = "SUSPICIOUS"
+        conclusion = "Possible deepfake artifacts detected in multiple frames"
     elif average_score >= 0.30:
         verdict = "LOW_RISK"
+        conclusion = "Minor inconsistencies detected, likely authentic"
     else:
         verdict = "LIKELY_AUTHENTIC"
+        conclusion = "No significant deepfake indicators detected"
+
+    is_deepfake = verdict in ["HIGH_RISK", "SUSPICIOUS"]
 
     return {
         "frames_analyzed": len(frame_results),
@@ -122,6 +130,8 @@ def analyze_deepfake(
         "average_deepfake_score": average_score,
         "max_deepfake_score": max_score,
         "verdict": verdict,
+        "is_deepfake": is_deepfake,
+        "conclusion": conclusion,
         "flagged_frames": flagged_frames,
         "all_frame_scores": frame_results,
     }

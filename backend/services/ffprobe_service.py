@@ -1,180 +1,164 @@
-import subprocess
-import json
 from models.report import MetadataReport, MetadataFlags
-import shutil
-import os
+from utils.exiftool import run_exiftool
+from utils.parsers import parse_bitrate, parse_duration, parse_filesize
 
-SUSPICIOUS_SOFTWARE = [
-    "adobe premiere", "after effects", "davinci resolve",
-    "handbrake", "ffmpeg", "avisynth", "vegas pro",
-    "camtasia", "obs studio", "kdenlive"
-]
-
-PLATFORM_PATTERNS = {
-    "whatsapp": "WhatsApp",
-    "telegram": "Telegram",
-    "instagram": "Instagram",
-    "youtube": "YouTube",
-    "tiktok": "TikTok",
-}
-
-def run_ffprobe(filepath: str) -> dict:
-    command = [
-        "ffprobe",
-        "-v", "quiet",
-        "-print_format", "json",
-        "-show_format",
-        "-show_streams",
-        filepath
-    ]
-    result = subprocess.run(command, capture_output=True, text=True)
-    if result.returncode != 0:
-        raise ValueError(f"FFprobe failed: {result.stderr}")
-    return json.loads(result.stdout)
-
-# def run_ffprobe(filepath: str) -> dict:
-#     command = [
-#         "ffprobe",
-#         "-v", "quiet",
-#         "-print_format", "json",
-#         "-show_format",
-#         "-show_streams",
-#         filepath
-#     ]
-#     result = subprocess.run(command, capture_output=True, text=True)
-#     if result.returncode != 0:
-#         raise ValueError(f"FFprobe failed: {result.stderr}")
-#     return json.loads(result.stdout)
-
-def extract_video_stream(streams: list) -> dict:
-    for stream in streams:
-        if stream.get("codec_type") == "video":
-            return stream
-    return {}
-
-def parse_frame_rate(rate_str: str) -> float:
-    try:
-        if "/" in rate_str:
-            num, den = rate_str.split("/")
-            return round(int(num) / int(den), 3)
-        return float(rate_str)
-    except:
-        return 0.0
 
 def analyze_metadata(filepath: str, filename: str) -> MetadataReport:
-    raw = run_ffprobe(filepath)
+    metadata = run_exiftool(filepath)
 
-    fmt = raw.get("format", {})
-    streams = raw.get("streams", [])
-    video_stream = extract_video_stream(streams)
+    # ============================
+    # PARSED NUMERIC VALUES
+    # ============================
+    duration = parse_duration(metadata.get("Duration"))
+    size = parse_filesize(metadata.get("FileSize"))
+    bit_rate = parse_bitrate(metadata.get("AvgBitrate"))
 
-    encoding_software = (
-        fmt.get("tags", {}).get("encoder") or
-        fmt.get("tags", {}).get("software") or
-        fmt.get("tags", {}).get("writing_application")
-    )
-    creation_time = fmt.get("tags", {}).get("creation_time")
-    duration = float(fmt.get("duration", 0)) or None
-    size = int(fmt.get("size", 0)) or None
-    bit_rate = int(fmt.get("bit_rate", 0)) or None
-    codec = video_stream.get("codec_name")
-    fmt_name = fmt.get("format_long_name")
+    # ============================
+    # RAW FIELDS
+    # ============================
+    software = str(metadata.get("Software", "")).lower()
+    creation_time = metadata.get("CreateDate")
+    modify_time = metadata.get("ModifyDate")
 
-    raw_frame_rate = video_stream.get("r_frame_rate", "")
-    avg_frame_rate = video_stream.get("avg_frame_rate", "")
-    r_fps = parse_frame_rate(raw_frame_rate)
-    avg_fps = parse_frame_rate(avg_frame_rate)
+    make = metadata.get("Make")
+    model = metadata.get("Model")
+
+    gps_lat = metadata.get("GPSLatitude")
+    gps_lon = metadata.get("GPSLongitude")
+
+    frame_rate = metadata.get("VideoFrameRate")
+    codec = metadata.get("VideoCodec")
 
     risk_signals = []
+    metadata_details = []
+    missing_fields = []
 
-    # 1. Suspicious software
+    # ============================
+    # 1. DEVICE INFORMATION
+    # ============================
+    if make and model:
+        metadata_details.append(f"Captured using device: {make} {model}")
+    else:
+        missing_fields.append("Device information missing")
+        risk_signals.append("No camera/device metadata — possible re-encoding or AI generation")
+
+    # ============================
+    # 2. SOFTWARE ANALYSIS
+    # ============================
     suspicious_software = False
-    if encoding_software:
-        for sw in SUSPICIOUS_SOFTWARE:
-            if sw in encoding_software.lower():
-                suspicious_software = True
-                risk_signals.append(f"Encoded with suspicious software: {encoding_software}")
-                break
+    if software:
+        metadata_details.append(f"Processed using software: {software}")
 
-    # 2. Missing timestamp
-    timestamp_missing = creation_time is None
-    if timestamp_missing:
-        risk_signals.append("Creation timestamp is missing from metadata")
+        if any(x in software for x in [
+            "premiere", "after effects", "davinci", "ffmpeg", "capcut"
+        ]):
+            suspicious_software = True
+            risk_signals.append("Video processed using editing software")
+    else:
+        missing_fields.append("Software tag missing")
 
-    # 3. Frame rate inconsistency
-    framerate_inconsistent = False
-    if r_fps and avg_fps:
-        if abs(r_fps - avg_fps) > 2.0:
-            framerate_inconsistent = True
-            risk_signals.append(
-                f"Frame rate inconsistency: declared {r_fps}fps vs average {avg_fps}fps"
-            )
+    # ============================
+    # 3. TIMESTAMP ANALYSIS
+    # ============================
+    timestamp_missing = False
 
-    # 4. Bit rate anomaly
+    if creation_time:
+        metadata_details.append(f"Creation time: {creation_time}")
+    else:
+        timestamp_missing = True
+        missing_fields.append("Creation timestamp missing")
+        risk_signals.append("No creation timestamp — weak evidence of origin")
+
+    if modify_time and creation_time and modify_time != creation_time:
+        risk_signals.append("File modified after creation")
+
+    # ============================
+    # 4. BITRATE ANALYSIS
+    # ============================
     bitrate_anomaly = False
-    if bit_rate and bit_rate < 100_000:
-        bitrate_anomaly = True
-        risk_signals.append(
-            f"Unusually low bit rate: {bit_rate // 1000} kbps — suggests heavy re-compression"
-        )
+    if bit_rate:
+        metadata_details.append(f"Bitrate: {bit_rate} bps")
 
-    # 5. Duration vs file size mismatch
+        if bit_rate < 100000:
+            bitrate_anomaly = True
+            risk_signals.append("Low bitrate — heavy compression or recompression")
+    else:
+        missing_fields.append("Bitrate information unavailable")
+
+    # ============================
+    # 5. SIZE vs DURATION
+    # ============================
     duration_size_mismatch = False
     if duration and size:
-        if size < duration * 50_000:
+        metadata_details.append(f"Duration: {duration}s | Size: {size} bytes")
+
+        if size < duration * 50000:
             duration_size_mismatch = True
-            risk_signals.append(
-                f"File size ({size // 1024}KB) too small for duration ({round(duration, 1)}s)"
-            )
+            risk_signals.append("File size too small for duration — possible recompression")
+    else:
+        missing_fields.append("Duration or file size missing")
 
-    # 6. Re-encoding detection
-    has_device_info = any([
-        fmt.get("tags", {}).get("make"),
-        fmt.get("tags", {}).get("model"),
-        fmt.get("tags", {}).get("com.android.version"),
-        fmt.get("tags", {}).get("artist"),
-    ])
-    re_encoded = not has_device_info
-    if re_encoded:
-        risk_signals.append("No original device metadata — video was likely re-encoded")
+    # ============================
+    # 6. GPS ANALYSIS
+    # ============================
+    if gps_lat and gps_lon:
+        metadata_details.append(f"GPS location available: {gps_lat}, {gps_lon}")
+    else:
+        metadata_details.append("No GPS data present")
 
-    # 7. Platform detection
-    source_platform = None
-    platform_note = None
+    # ============================
+    # 7. FORMAT INFO
+    # ============================
+    if codec:
+        metadata_details.append(f"Codec: {codec}")
+    if frame_rate:
+        metadata_details.append(f"Frame rate: {frame_rate}")
 
-    filename_lower = filename.lower()
-    for keyword, platform_name in PLATFORM_PATTERNS.items():
-        if keyword in filename_lower:
-            source_platform = platform_name
-            platform_note = (
-                f"{platform_name} automatically re-encodes videos upon transmission, "
-                f"which removes original device metadata. "
-                f"Re-encoding and missing timestamp flags alone are not conclusive "
-                f"evidence of tampering for videos sourced from {platform_name}."
-            )
-            break
-
+    # ============================
+    # FLAGS
+    # ============================
     flags = MetadataFlags(
-        re_encoded=re_encoded,
+        re_encoded=not (make and model),
         suspicious_software=suspicious_software,
         timestamp_missing=timestamp_missing,
-        framerate_inconsistent=framerate_inconsistent,
+        framerate_inconsistent=False,
         bitrate_anomaly=bitrate_anomaly,
         duration_size_mismatch=duration_size_mismatch,
     )
 
+    # ============================
+    # FINAL INTERPRETATION
+    # ============================
+    if len(risk_signals) >= 4:
+        overall_risk = "HIGH"
+        conclusion = "Strong evidence of tampering or re-encoding"
+    elif len(risk_signals) >= 2:
+        overall_risk = "MEDIUM"
+        conclusion = "Some suspicious indicators present"
+    elif len(risk_signals) == 1:
+        overall_risk = "LOW"
+        conclusion = "Minor inconsistencies detected"
+    else:
+        overall_risk = "NONE"
+        conclusion = "Metadata appears consistent and normal"
+
     return MetadataReport(
         filename=filename,
-        format=fmt_name,
-        duration_seconds=round(duration, 2) if duration else None,
+        format=metadata.get("FileType"),
+        duration_seconds=duration,
         size_bytes=size,
-        encoding_software=encoding_software,
+        encoding_software=metadata.get("Software"),
         creation_time=creation_time,
-        frame_rate=f"{r_fps}fps",
+        frame_rate=str(frame_rate),
         bit_rate=bit_rate,
         codec=codec,
         flags=flags,
         risk_signals=risk_signals,
-        source_platform=source_platform,
-        platform_note=platform_note,
-    )
+        source_platform=None,
+        platform_note=None,
+    ), {
+        "details": metadata_details,
+        "missing_fields": missing_fields,
+        "risk_level": overall_risk,
+        "conclusion": conclusion
+    }

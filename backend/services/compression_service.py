@@ -202,18 +202,30 @@ def analyze_video_compression(
             "Suspiciously uniform compression pattern across frames — "
             "consistent with re-encoding after editing"
         )
+        
+    top_suspicious = sorted(
+        frame_results,
+        key=lambda x: x["confidence"],
+        reverse=True
+    )[:5]
 
     return {
-        "frames_analyzed":        int(len(frame_results)),
-        "suspicious_frame_count": int(len(suspicious_frames)),
-        "suspicious_ratio":       suspicious_ratio,
-        "overall_suspicious":     overall_suspicious,
-        "analysis_reliable":      not social_media["detected"],
-        "social_media_recompression": social_media,
-        "video_fps":              round(float(fps), 2),
-        "avg_benford_deviation":  round(float(np.mean([r["benford_deviation"] for r in frame_results])), 6),
-        "avg_blocking_score":     round(float(np.mean([r["blocking_score"]    for r in frame_results])), 6),
-        "interframe_uniformity":  uniformity,
-        "risk_signals":           risk_signals,
-        "frame_results":          frame_results,
+        "frames_analyzed": len(frame_results),
+        "suspicious_frame_count": len(suspicious_frames),
+        "suspicious_ratio": suspicious_ratio,
+        "overall_suspicious": overall_suspicious,
+
+        "top_suspicious_frames": top_suspicious,
+
+        "explanation": (
+            "High number of frames show compression artifacts consistent with re-encoding"
+            if overall_suspicious else
+            "No strong compression anomalies detected"
+        ),
+
+        "avg_benford_deviation": np.mean([r["benford_deviation"] for r in frame_results]),
+        "avg_blocking_score": np.mean([r["blocking_score"] for r in frame_results]),
+
+        "risk_signals": risk_signals,
+        "frame_results": frame_results
     }
