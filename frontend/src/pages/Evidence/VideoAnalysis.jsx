@@ -1,11 +1,21 @@
 import React, { useState } from "react";
+import { Download, Film, Zap } from "lucide-react";
+import { motion } from "framer-motion";
+import ResultCard from "../../components/ResultCard";
+import RiskBadge from "../../components/RiskBadge";
+import LoadingSpinner from "../../components/LoadingSpinner";
+import ErrorAlert from "../../components/ErrorAlert";
 
 const VideoAnalysis = ({ file }) => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const analyzeVideo = async () => {
-    if (!file) return alert("Upload video first");
+    if (!file) {
+      setError("Please upload a video first");
+      return;
+    }
 
     const formData = new FormData();
     formData.append("file", file);
@@ -13,6 +23,7 @@ const VideoAnalysis = ({ file }) => {
     try {
       setLoading(true);
       setResult(null);
+      setError(null);
 
       const res = await fetch("http://127.0.0.1:8000/video/analyze", {
         method: "POST",
@@ -23,7 +34,7 @@ const VideoAnalysis = ({ file }) => {
       setResult(data);
     } catch (err) {
       console.error(err);
-      alert("Video analysis failed");
+      setError("Failed to analyze video. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -33,7 +44,7 @@ const VideoAnalysis = ({ file }) => {
     <div className="min-h-screen bg-[#F9F7F4] pt-28 pb-20">
 
       {/* HEADER */}
-      <div className="text-center mb-10">
+      <div className="text-center mb-10 px-4">
         <h1
           className="text-4xl font-bold text-[#0B132B]"
           style={{ fontFamily: "Playfair Display" }}
@@ -45,135 +56,194 @@ const VideoAnalysis = ({ file }) => {
         </p>
       </div>
 
-      {/* 🔥 VIDEO PREVIEW */}
-      {file && (
-        <div className="max-w-4xl mx-auto px-4 mb-8">
-          <div className="bg-white shadow p-6">
+      <div className="max-w-5xl mx-auto px-4">
+        {/* ERROR ALERT */}
+        {error && <ErrorAlert message={error} onDismiss={() => setError(null)} />}
 
-            <p className="text-sm text-gray-500 mb-2">
-              Uploaded File
-            </p>
-
-            <p className="font-medium mb-4">
-              {file.name}
-            </p>
-
-            <video
-              src={URL.createObjectURL(file)}
-              controls
-              className="w-full max-h-[400px] object-contain border rounded-md"
-            />
+        {/* VIDEO PREVIEW */}
+        {file && (
+          <div className="mb-8">
+            <ResultCard title="Video Preview" icon={Film} status="info">
+              <p className="text-sm text-gray-600 mb-3">Uploaded: {file.name}</p>
+              <video
+                src={URL.createObjectURL(file)}
+                controls
+                className="w-full max-h-[400px] object-contain border border-gray-300 rounded-lg"
+              />
+            </ResultCard>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* 🔥 ANALYZE BUTTON (ONLY IF FILE EXISTS) */}
-      {file && (
-        <div className="text-center mb-10">
-          <button
-            onClick={analyzeVideo}
-            disabled={loading}
-            className={`px-10 py-3 transition shadow
-              ${loading
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-[#C5A880] hover:scale-105 text-white"}
-            `}
-          >
-            {loading ? "Analyzing..." : "Run Full Analysis"}
-          </button>
-        </div>
-      )}
-
-      {/* 🔥 RESULT */}
-      {result && (
-        <div className="max-w-5xl mx-auto px-4 space-y-8">
-
-          {/* VERDICT */}
-          <div className="bg-white shadow-lg p-6 text-center">
-            <h2 className="text-xl font-semibold mb-2">
-              Final Verdict
-            </h2>
-
-            <p className="text-2xl font-bold">
-              {result.verdict}
-            </p>
-
-            <p className="text-sm text-gray-500 mt-2">
-              Risk Score: {result.risk_score}
-            </p>
-          </div>
-
-          {/* DEEPFAKE */}
-          <div className="bg-white shadow p-6">
-            <h2 className="font-semibold mb-3">
-              Deepfake Detection
-            </h2>
-
-            <p>Score: {result.deepfake.average_deepfake_score}</p>
-          </div>
-
-          {/* COMPRESSION */}
-          <div className="bg-white shadow p-6">
-            <h2 className="font-semibold mb-3">
-              Compression Analysis
-            </h2>
-
-            <p>
-              Suspicious:{" "}
-              {result.compression.overall_suspicious ? "Yes" : "No"}
-            </p>
-          </div>
-
-          {/* SPLICE */}
-          <div className="bg-white shadow p-6">
-            <h2 className="font-semibold mb-3">
-              Splice Detection
-            </h2>
-
-            <p>
-              Suspicious:{" "}
-              {result.splice.overall_suspicious ? "Yes" : "No"}
-            </p>
-          </div>
-
-          {/* SYNC */}
-          <div className="bg-white shadow p-6">
-            <h2 className="font-semibold mb-3">
-              Audio-Video Sync
-            </h2>
-
-            <p>{result.sync.status}</p>
-          </div>
-
-          {/* METADATA */}
-          <div className="bg-white shadow p-6">
-            <h2 className="font-semibold mb-3">
-              Metadata Signals
-            </h2>
-
-            {result.metadata.main.risk_signals?.length === 0 ? (
-              <p className="text-green-600">No issues</p>
-            ) : (
-              result.metadata.main.risk_signals.map((f, i) => (
-                <p key={i}>⚠ {f}</p>
-              ))
-            )}
-          </div>
-
-          {/* DOWNLOAD */}
-          <div className="text-center">
-            <a
-              href={result.report_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-[#0B132B] text-white px-8 py-3 hover:scale-105 transition"
+        {/* ANALYZE BUTTON */}
+        {file && (
+          <div className="text-center mb-8">
+            <button
+              onClick={analyzeVideo}
+              disabled={loading}
+              className={`px-10 py-3 font-medium transition-all shadow-md ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-[#C5A880] text-white hover:scale-105 hover:shadow-lg"
+              }`}
             >
-              Download Full Report
-            </a>
+              {loading ? "Analyzing..." : "Run Full Analysis"}
+            </button>
           </div>
+        )}
 
-        </div>
-      )}
+        {/* LOADING STATE */}
+        {loading && <LoadingSpinner message="Analyzing video..." />}
+
+        {/* RESULTS */}
+        {result && (
+          <motion.div
+            className="space-y-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+
+            {/* VERDICT */}
+            <ResultCard
+              title="Analysis Summary"
+              icon={Zap}
+              status={result.risk_score > 50 ? "danger" : "safe"}
+              delay={0}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.15 }}
+              >
+                <RiskBadge risk={result.verdict} score={result.risk_score} />
+              </motion.div>
+            </ResultCard>
+
+            {/* DEEPFAKE */}
+            <ResultCard
+              title="Deepfake Detection"
+              icon={Zap}
+              status={
+                result.deepfake?.average_deepfake_score > 50 ? "danger" : "safe"
+              }
+              delay={0.1}
+            >
+              <motion.div
+                className="space-y-3"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.25 }}
+              >
+                <p className="text-sm font-semibold">Score: {result.deepfake?.average_deepfake_score}</p>
+                <RiskBadge
+                  risk={(result.deepfake?.average_deepfake_score || 0) > 50 ? "danger" : "safe"}
+                  score={result.deepfake?.average_deepfake_score}
+                />
+              </motion.div>
+            </ResultCard>
+
+            {/* COMPRESSION */}
+            <ResultCard
+              title="Compression Analysis"
+              icon={Zap}
+              status={result.compression?.overall_suspicious ? "warning" : "safe"}
+              delay={0.2}
+            >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
+                <RiskBadge
+                  risk={result.compression?.overall_suspicious ? "warning" : "safe"}
+                />
+              </motion.div>
+            </ResultCard>
+
+            {/* SPLICE DETECTION */}
+            <ResultCard
+              title="Splice Detection"
+              icon={Zap}
+              status={result.splice?.overall_suspicious ? "warning" : "safe"}
+              delay={0.3}
+            >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}>
+                <RiskBadge
+                  risk={result.splice?.overall_suspicious ? "warning" : "safe"}
+                />
+              </motion.div>
+            </ResultCard>
+
+            {/* AUDIO-VIDEO SYNC */}
+            <ResultCard
+              title="Audio-Video Sync"
+              icon={Zap}
+              status="info"
+              delay={0.4}
+            >
+              <motion.p
+                className="text-sm font-semibold"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.55 }}
+              >
+                {result.sync?.status}
+              </motion.p>
+            </ResultCard>
+
+            {/* METADATA */}
+            <ResultCard
+              title="Metadata Analysis"
+              icon={Zap}
+              status="info"
+              delay={0.5}
+            >
+              {result.metadata?.main?.risk_signals?.length === 0 ? (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.65 }}>
+                  <RiskBadge risk="safe" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  className="bg-white/50 border border-yellow-200 rounded p-3"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.65 }}
+                >
+                  <p className="text-xs font-semibold text-yellow-800 mb-2">Risk Signals:</p>
+                  {result.metadata?.main?.risk_signals?.map((signal, i) => (
+                    <motion.li
+                      key={i}
+                      className="text-sm text-yellow-800 flex items-start gap-2 list-none"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.65 + i * 0.05 }}
+                    >
+                      <span className="text-yellow-600 mt-0.5">⚠</span> {signal}
+                    </motion.li>
+                  ))}
+                </motion.div>
+              )}
+            </ResultCard>
+
+            {/* DOWNLOAD */}
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+            >
+              <motion.a
+                href={result.report_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-[#0B132B] text-white px-8 py-3 hover:scale-105 transition-all shadow-md rounded"
+                whileHover={{ scale: 1.05, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.2)" }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <Download className="w-4 h-4" />
+                Download Full Report
+              </motion.a>
+            </motion.div>
+
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 };
