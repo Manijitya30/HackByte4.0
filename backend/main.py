@@ -7,21 +7,44 @@ import subprocess
 import json
 import tempfile
 
-# ===== IMPORT MODELS =====
+from report_router import router as report_router
+
+# ===== MODELS =====
 from ai_model import load_ai_model, predict_ai
 from tamper_model import load_tamper_model, predict_full
 from deepfakedetect import analyze_deepfake_image
 from report import generate_report
 from metadata import analyze_metadata, score_flags
 
+# =====================================================
+# ===== APP INIT ======================================
+# =====================================================
 app = FastAPI()
 
-# ===== LOAD MODELS =====
+# =====================================================
+# ===== INCLUDE ROUTERS ===============================
+# =====================================================
+app.include_router(report_router)
+
+# =====================================================
+# ===== LOAD MODELS (ONLY ONCE) =======================
+# =====================================================
 ai_model, ai_device = load_ai_model()
 tamper_model, tamper_device = load_tamper_model()
 
+# Temp directory
 os.makedirs("temp", exist_ok=True)
 
+# =====================================================
+# ===== ROOT ==========================================
+# =====================================================
+@app.get("/")
+def read_root():
+    return {"message": "Hello from FastAPI 🚀"}
+
+# =====================================================
+# ===== MAIN ANALYSIS ENDPOINT ========================
+# =====================================================
 @app.post("/analyze/")
 async def analyze(file: UploadFile = File(...)):
 
@@ -109,4 +132,8 @@ async def analyze(file: UploadFile = File(...)):
         tamper_conf
     )
 
-    return FileResponse(report_path, media_type="application/pdf", filename="report.pdf")
+    return FileResponse(
+        report_path,
+        media_type="application/pdf",
+        filename="report.pdf"
+    )
