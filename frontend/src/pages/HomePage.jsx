@@ -82,7 +82,9 @@ const HomePage = () => {
           />
           <div className="hero-overlay absolute inset-0"></div>
         </div>
+        
 
+        
         {/* Hero Content */}
         <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-24">
           <motion.div
