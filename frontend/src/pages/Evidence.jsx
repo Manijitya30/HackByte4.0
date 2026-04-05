@@ -76,52 +76,17 @@ const Evidence = () => {
           })}
         </div>
 
-        {/* UPLOAD BOX */}
-        <div className="border-2 border-dashed border-gray-300 p-8 sm:p-12 text-center rounded-lg hover:border-[#C5A880] hover:bg-[#C5A880]/5 transition-all">
-          <div className="flex justify-center mb-4">
-            <Upload className="w-10 h-10 sm:w-12 sm:h-12 text-[#C5A880]" />
-          </div>
-
-          <p className="mt-4 text-sm sm:text-base text-[#4B5563] font-medium">
-            Drag & drop your {selectedType} file here, or click to upload
-          </p>
-
-          <p className="text-xs text-gray-500 mt-2">
-            Supported formats: Images (PNG, JPG), Videos (MP4, MOV), Audio (MP3, WAV)
-          </p>
-
-          <input
-            type="file"
-            className="hidden"
-            id="fileUpload"
-            onChange={(e) => setFile(e.target.files[0])}
-          />
-
-          <label
-            htmlFor="fileUpload"
-            className="inline-block mt-6 px-6 sm:px-8 py-2 sm:py-3 bg-[#C5A880] text-white cursor-pointer hover:scale-105 transition-all rounded font-medium"
-          >
-            Choose File
-          </label>
-
-          {file && (
-            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded">
-              <p className="text-sm text-green-700 break-all">
-                ✅ Selected: {file.name}
-              </p>
-            </div>
-          )}
-        </div>
+      
 
         {/* 🔥 DYNAMIC ANALYSIS SECTION */}
 
         {selectedType === "image" && <ImageAnalysis file={file} />}
 
-        {selectedType === "video" && file && (
+        {selectedType === "video"  && (
   <VideoAnalysis file={file} />
 )}
 
-        {selectedType === "audio" && file && (
+        {selectedType === "audio" &&  (
   <AudioAnalysis file={file} />
 )}
 
