@@ -46,22 +46,9 @@ This makes it so that data retrieved and worked on is relevant to the case and c
 
 - `backend/` — FastAPI service, AI models, metadata extraction, tamper/deepfake detection, report generation.
 - `frontend/` — React + Vite user interface.
-- `ImageAuthentication/` — image authentication datasets and scripts.
+- `ImageAuthentication/` — image authentication datasets and scripts. 
 
-## Chatbot Architecture
 
-┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  User asks  │────▶│  Vector Database │────▶│  Retrieve top  │
-│  a question │     │  (Chroma/Pinecone)│     │  K relevant    │
-└─────────────┘     └──────────────────┘     │  chunks/sections│
-                                             └────────┬────────┘
-                                                      │
-                                                      ▼
-┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  LLM gives  │◀────│  LLM generates  │◀────│  Prompt with   │
-│  answer with│     │  answer from     │     │  context +      │
-│  citations  │     │  retrieved text  │     │  user question  │
-└─────────────┘     └──────────────────┘     └─────────────────┘
 
 ## Quick start
 
