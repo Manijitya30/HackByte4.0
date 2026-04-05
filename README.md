@@ -1,4 +1,4 @@
-# TensorCourt - an AI Enchanced Judicial System
+# VeriCourt - an AI Enchanced Judicial System
 
 A comprehensive courtroom-focused AI platform that revolutionizes legal proceedings through advanced evidence authentication, intelligent legal debate simulation, and automated court support.
 
