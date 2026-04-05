@@ -6,3 +6,12 @@ dist/
 .env
 __pycache__/
 *.pyc
+ImageAuthentication/image-auth-env/
+ImageAuthentication/ImageTamperingModule/dataset/
+ImageAuthentication/ImageTamperingModule/dataset_small/
+ImageAuthentication/AIvsRealCheckModule/dataset/
+backend/uploads/
+image-weights/
+models/
+temp/
+public/
