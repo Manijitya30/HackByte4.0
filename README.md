@@ -51,14 +51,14 @@ This makes it so that data retrieved and worked on is relevant to the case and c
 ## Chatbot Architecture
 
 ┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  User asks  │────▶│  Vector Database │────▶│  Retrieve top   │
-│  a question │     │  (Chroma/Pinecone)│     │  K relevant     │
+│  User asks  │────▶│  Vector Database │────▶│  Retrieve top  │
+│  a question │     │  (Chroma/Pinecone)│     │  K relevant    │
 └─────────────┘     └──────────────────┘     │  chunks/sections│
                                              └────────┬────────┘
                                                       │
                                                       ▼
 ┌─────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  LLM gives  │◀────│  LLM generates   │◀────│  Prompt with    │
+│  LLM gives  │◀────│  LLM generates  │◀────│  Prompt with   │
 │  answer with│     │  answer from     │     │  context +      │
 │  citations  │     │  retrieved text  │     │  user question  │
 └─────────────┘     └──────────────────┘     └─────────────────┘
