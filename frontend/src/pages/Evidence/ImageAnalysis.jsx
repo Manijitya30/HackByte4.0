@@ -185,7 +185,7 @@ const ImageAnalysis = () => {
                 </div>
 
                 <div>
-                  <p className="text-xs text-gray-500 mb-2">Heatmap</p>
+                  <p className="text-xs text-gray-500 mb-2">Overlay</p>
                   <img src={result.images.heatmap} className="rounded border" />
                 </div>
               </div>

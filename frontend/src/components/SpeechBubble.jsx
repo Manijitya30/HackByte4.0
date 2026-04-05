@@ -28,10 +28,10 @@ export default function SpeechBubble({ text, role }) {
   };
 
   return (
-    <group position={[0, 1.6, 0]}> {/* 👈 fixed base height */}
+    <group position={[0,0.5, 0]}> {/* 👈 fixed base height */}
 
       {/* ❌ removed "center" → important */}
-      <Html transform distanceFactor={10}>
+   <Html center>
         <motion.div
           initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -66,7 +66,7 @@ const bubbleStyle = {
   padding: "14px 16px",
   borderRadius: "12px",
   color: "#111827",
-
+  fontSize:"17px",
   width: "280px",
   maxWidth: "320px",
 
