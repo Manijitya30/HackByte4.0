@@ -6,18 +6,13 @@ import jsPDF from "jspdf";
 
 export default function Simulator() {
 
-  const script = [
-    { role: "judge", text: "Proceed with your argument" },
-    { role: "prosecution", text: "The evidence clearly proves the caseThe evidence clearly proves the caseThe evidence clearly proves the caseThe evidence clearly proves the caseThe evidence clearly proves the caseThe evidence clearly proves the case." },
-    { role: "defense", text: "Objection, this is speculative." },
-    { role: "judge", text: "Proceed with your argument." }
-  ];
+ 
   const { state } = useLocation();
 
   const [showReport, setShowReport] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
-  // const script = state?.script || [];
+  const script = state?.script || [];
   const longArguments = state?.long || [];
   const reportData = state?.report || "";
 
