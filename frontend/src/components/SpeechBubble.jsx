@@ -1,12 +1,12 @@
+
 import { Html } from "@react-three/drei";
 import { motion } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 
 export default function SpeechBubble({ text, role }) {
   const [displayed, setDisplayed] = useState("");
-  const [offsetY, setOffsetY] = useState(1.8);
-  const boxRef = useRef();
 
+  // 🧠 Typewriter
   useEffect(() => {
     let i = 0;
     setDisplayed("");
@@ -14,23 +14,12 @@ export default function SpeechBubble({ text, role }) {
     const interval = setInterval(() => {
       i++;
       setDisplayed(text.slice(0, i));
+
       if (i >= text.length) clearInterval(interval);
-    }, 18);
+    }, 20); // slightly slower for readability
 
     return () => clearInterval(interval);
   }, [text]);
-
-  // 🔥 Measure height and adjust position
-  useEffect(() => {
-    if (boxRef.current) {
-      const height = boxRef.current.offsetHeight;
-
-      // Convert px → 3D units (approx scaling)
-      const shift = height / 150;
-
-      setOffsetY(-0.1 + Math.min(shift * 0.8, 0.8));
-    }
-  }, [displayed]);
 
   const roleColors = {
     judge: "#f59e0b",
@@ -39,22 +28,23 @@ export default function SpeechBubble({ text, role }) {
   };
 
   return (
-    <group position={[0, offsetY, 0]}>
-      <Html center>
+    <group position={[0,0.5, 0]}> {/* 👈 fixed base height */}
+
+      {/* ❌ removed "center" → important */}
+   <Html center>
         <motion.div
-          ref={boxRef}
-          initial={{ opacity: 0, y: 20, scale: 0.9 }}
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.35 }}
+          transition={{ duration: 0.25 }}
           style={bubbleStyle}
         >
           {/* Role */}
           <div
             style={{
-              fontSize: "14px",
+              fontSize: "13px",
               fontWeight: "bold",
               color: roleColors[role],
-              marginBottom: "4px",
+              marginBottom: "6px",
               textTransform: "uppercase"
             }}
           >
@@ -62,7 +52,9 @@ export default function SpeechBubble({ text, role }) {
           </div>
 
           {/* Text */}
-          <div>{displayed}</div>
+          <div style={textStyle}>
+            {displayed}
+          </div>
         </motion.div>
       </Html>
     </group>
@@ -71,14 +63,21 @@ export default function SpeechBubble({ text, role }) {
 
 const bubbleStyle = {
   background: "white",
-  padding: "14px 18px",
-  borderRadius: "14px",
+  padding: "14px 16px",
+  borderRadius: "12px",
   color: "#111827",
-  fontSize: "17px",
-  width: "300px", 
- 
-  maxWidth: "520px",
-  minWidth: "200px",
-  
-  boxShadow: "0 8px 25px rgba(0,0,0,0.2)",
+  fontSize:"17px",
+  width: "280px",
+  maxWidth: "320px",
+
+  maxHeight: "140px",        // 🔥 KEY FIX
+  overflowY: "auto",         // 🔥 prevents overflow
+
+  boxShadow: "0 6px 20px rgba(0,0,0,0.2)",
+};
+
+const textStyle = {
+  fontSize: "15px",
+  lineHeight: "1.4",
+  wordBreak: "break-word",
 };

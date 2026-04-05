@@ -5,12 +5,19 @@ import { useState } from "react";
 import jsPDF from "jspdf";
 
 export default function Simulator() {
+
+  const script = [
+    { role: "judge", text: "Proceed with your argument" },
+    { role: "prosecution", text: "The evidence clearly proves the caseThe evidence clearly proves the caseThe evidence clearly proves the caseThe evidence clearly proves the caseThe evidence clearly proves the caseThe evidence clearly proves the case." },
+    { role: "defense", text: "Objection, this is speculative." },
+    { role: "judge", text: "Proceed with your argument." }
+  ];
   const { state } = useLocation();
 
   const [showReport, setShowReport] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
-  const script = state?.script || [];
+  // const script = state?.script || [];
   const longArguments = state?.long || [];
   const reportData = state?.report || "";
 
@@ -26,16 +33,6 @@ export default function Simulator() {
     doc.text("Courtroom Judgment Report", 20, 20);
 
     doc.setFontSize(12);
-
-    doc.text(`Verdict: ${formattedReport.verdict}`, 20, 40);
-    doc.text(
-      `Sections: ${formattedReport.sections_applied?.join(", ")}`,
-      20,
-      50
-    );
-    doc.text(`Confidence: ${formattedReport.confidence}`, 20, 60);
-
-    doc.text("--------------------------------------------------", 20, 70);
 
     doc.text("Reasoning:", 20, 80);
 
@@ -99,20 +96,6 @@ export default function Simulator() {
             Final Judgment
           </h2>
 
-          <p className="mb-2">
-            <strong className="text-[#fcd34d]">Verdict:</strong>{" "}
-            {formattedReport.verdict}
-          </p>
-
-          <p className="mb-2">
-            <strong className="text-[#fcd34d]">Sections:</strong>{" "}
-            {formattedReport.sections_applied?.join(", ")}
-          </p>
-
-          <p className="mb-4">
-            <strong className="text-[#fcd34d]">Confidence:</strong>{" "}
-            {formattedReport.confidence}
-          </p>
 
           <button
             onClick={downloadPDF}

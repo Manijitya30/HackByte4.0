@@ -67,9 +67,14 @@ const HomePage = () => {
     },
   };
 
-  const handleNavigate = () => {
- navigate("/evidence");
-  
+  const handleNavigate = (id) => {
+  if (id === "evidence-tamper") {
+    navigate("/evidence");
+  } else if (id === "ai-chatbot") {
+    navigate("/chatbot");
+  } else if (id === "debate-simulator") {
+    navigate("/debate");
+  }
 };
 
   return (

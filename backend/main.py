@@ -15,6 +15,8 @@ import tempfile
 # ===== ROUTERS =====
 from routers import video_check
 from report_router import router as report_router
+from debate_engine.router import router as debate_router
+
 
 # ===== MODELS =====
 from ai_model import load_ai_model, predict_ai
@@ -45,6 +47,10 @@ app.add_middleware(
 # =====================================================
 # ===== INCLUDE ROUTERS ===============================
 # =====================================================
+from chatbot.router import router as chatbot_router
+
+app.include_router(chatbot_router)
+app.include_router(debate_router)
 app.include_router(video_check.router, prefix="", tags=["Video Analysis"])
 app.include_router(report_router)
 app.mount("/temp", StaticFiles(directory="temp"), name="temp")
