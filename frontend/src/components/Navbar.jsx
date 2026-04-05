@@ -1,8 +1,38 @@
 import React from "react";
 import { Scale, Menu } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Navbar = ({ mobileMenuOpen, setMobileMenuOpen }) => {
+  const navigate = useNavigate();
+const location = useLocation();
+
+const handleScroll = (id) => {
+  if (location.pathname !== "/") {
+    // Go to home first
+    navigate("/");
+
+    // Wait for page to load, then scroll
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) {
+        window.scrollTo({
+          top: el.offsetTop - 80,
+          behavior: "smooth",
+        });
+      }
+    }, 200);
+  } else {
+    // Already on home → just scroll
+    const el = document.getElementById(id);
+    if (el) {
+      window.scrollTo({
+        top: el.offsetTop - 80,
+        behavior: "smooth",
+      });
+    }
+  }
+};
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 
 bg-white/80 backdrop-blur-md 
@@ -26,34 +56,34 @@ shadow-sm">
           <div className="hidden md:flex items-center gap-8">
 
             {/* Features */}
-            <a
-              href="#features"
+            <button 
+              onClick={() => handleScroll("features")}
               className="relative group text-[#4B5563] hover:text-[#0B132B] font-medium transition-colors duration-300"
             >
               Features
               <span className="absolute left-0 -bottom-1 h-[2px] w-0 bg-[#C5A880] transition-all duration-300 group-hover:w-full"></span>
-            </a>
+            </button>
 
             {/* Contact */}
-            <a
-              href="#contact"
+            <button To="/#contact"
+              onClick={() => handleScroll("contact")}
               className="relative group text-[#4B5563] hover:text-[#0B132B] font-medium transition-colors duration-300"
             >
               Contact
               <span className="absolute left-0 -bottom-1 h-[2px] w-0 bg-[#C5A880] transition-all duration-300 group-hover:w-full"></span>
-            </a>
+            </button>
 
             {/* About */}
-            <a
-              href="#about"
+            <button
+               onClick={() => handleScroll("about")}
               className="relative group text-[#4B5563] hover:text-[#0B132B] font-medium transition-colors duration-300"
             >
               About
               <span className="absolute left-0 -bottom-1 h-[2px] w-0 bg-[#C5A880] transition-all duration-300 group-hover:w-full"></span>
-            </a>
+            </button>
 
             {/* Button */}
-            <button className="bg-[#C5A880] text-white px-8 py-3 rounded-none font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg">
+            <button onClick={() => navigate("/debate")} className="bg-[#C5A880] text-white px-8 py-3 rounded-none font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg">
               Get Started
             </button>
           </div>

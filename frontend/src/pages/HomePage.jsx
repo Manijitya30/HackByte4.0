@@ -114,6 +114,7 @@ const HomePage = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4">
               <button
+              onClick={() => navigate("/debate")}
                 data-testid="hero-get-started-btn"
                 className="btn-primary bg-[#C5A880] text-white px-8 py-4 rounded-none font-medium inline-flex items-center gap-2 transition-all duration-300 ease-in-out 
 hover:scale-105 hover:shadow-lg"
@@ -122,6 +123,7 @@ hover:scale-105 hover:shadow-lg"
                 <ChevronRight className="w-5 h-5" />
               </button>
               <button
+              
                 data-testid="hero-learn-more-btn"
                 className="btn-secondary bg-transparent text-[#0B132B] border border-[#0B132B] px-8 py-4 rounded-none font-medium"
               >

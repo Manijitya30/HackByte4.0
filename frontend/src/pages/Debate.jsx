@@ -8,7 +8,10 @@ const DebatePage = () => {
   const [prosecutionEvidence, setProsecutionEvidence] = useState([""]);
   const [defenseEvidence, setDefenseEvidence] = useState([""]);
   const [caseInput, setCaseInput] = useState("");
-  const [rounds, setRounds] = useState(3); // ✅ NEW
+  const [rounds, setRounds] = useState(3);
+
+  // 🔥 NEW: loading state
+  const [loading, setLoading] = useState(false);
 
   const autoResize = (e) => {
     e.target.style.height = "auto";
@@ -37,6 +40,8 @@ const DebatePage = () => {
 
   // 🚀 MAIN SUBMIT
   const startSimulation = async () => {
+    setLoading(true); // 🔥 START LOADING
+
     const payload = {
       case: caseInput,
       evidence: {
@@ -59,13 +64,16 @@ const DebatePage = () => {
 
       navigate("/simulator", {
         state: {
-          debate: data.history,
-          judgment: data.final_judgment,
+          script: data.script,
+          long: data.long_arguments,
+          report: JSON.stringify(data.final_judgment, null, 2),
         },
       });
 
     } catch (err) {
       console.error("Simulation error:", err);
+    } finally {
+      setLoading(false); // 🔥 STOP LOADING
     }
   };
 
@@ -177,11 +185,36 @@ const DebatePage = () => {
       <div className="text-center mt-6 pb-10">
         <button
           onClick={startSimulation}
-          className="px-6 py-3 bg-[#C5A880] text-white hover:bg-[#b89a70]"
+          disabled={loading}
+          className={`px-6 py-3 text-white ${
+            loading
+              ? "bg-gray-400 cursor-not-allowed"
+              : "bg-[#C5A880] hover:bg-[#b89a70]"
+          }`}
         >
-          Start Simulation
+          {loading ? "Generating Debate..." : "Start Simulation"}
         </button>
       </div>
+
+      {/* 🔥 LOADING OVERLAY */}
+      {loading && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-xl shadow-xl flex flex-col items-center">
+            
+            {/* Spinner */}
+            <div className="w-12 h-12 border-4 border-[#C5A880] border-t-transparent rounded-full animate-spin mb-4"></div>
+            
+            <p className="text-lg font-semibold text-gray-700">
+              Building courtroom debate...
+            </p>
+
+            <p className="text-sm text-gray-500 mt-1">
+              AI is analyzing laws, evidence & cases ⚖️
+            </p>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };
